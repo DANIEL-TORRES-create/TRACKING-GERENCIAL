@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<div class="card-container">
+    <h2 class="titulo-seccion">🛠️ Crear Plan de Rutas</h2>
+    
+    <!-- 🎛 shrink CONTENEDOR DE DOS COLUMNAS EN ACCIÓN -->
+    <div class="bunker-split-container">
+        
+        <!-- [VENTANA IZQUIERDA (50%)]: CONSTRUCTOR DE TRAMOS -->
+        <div class="columna-izquierda-pro">
+            
+            <div id="cfg-contenedorManual" class="barra-herramientas" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: flex-end;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label>NOMBRE DE LA RUTA:</label>
+                    <input type="text" id="nombreRuta" placeholder="Ej: LIMA - HUANCAVELICA" style="width: 100%;">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label id="lblZonas">BUSCANDO ZONAS EN MYGEOTAB...</label>
+                    <input list="listaZonas" id="buscadorZonas" placeholder="Buscar geocerca..." style="width: 100%;">
+                    <datalist id="listaZonas"></datalist>
+                </div>
+                <div style="grid-column: span 2; display: flex; justify-content: flex-end; margin-top: 4px;">
+                    <button id="btnAgregar" class="btn-lupa" style="width: 100%; height: 34px;">➕ Añadir Punto al Itinerario</button>
+                </div>
+            </div>
+
+            <table class="tabla-constructor">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">Ord</th>
+                        <th style="text-align: left; padding-left: 8px;">Punto de Control</th>
+                        <th>Dist (Km)</th>
+                        <th>Tiempo Tramo</th>
+                        <th>Pernocte</th>
+                        <th style="width: 50px;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoRuta"></tbody>
+            </table>
+
+            <div style="margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end;">
+                <button id="cfg-btnCancelar" class="btn-cancelar" style="margin: 0;">❌ Cancelar</button>
+                <button id="btnGuardar" class="btn-guardar" style="margin: 0;">💾 Guardar Ruta</button>
+            </div>
+
+        </div>
+
+        <!-- [VENTANA DERECHA (50%)]: PANEL DE RUTAS GUARDADAS -->
+        <div class="columna-derecha-pro">
+            <div class="seccion-lista">
+                <div style="margin-bottom: 12px; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin: 0; color: #004b93; font-weight: 800; text-transform: uppercase; font-size: 13px; letter-spacing: 0.3px;">📂 HISTORIAL DE RUTAS CREADAS</h3>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <input type="text" id="cfg-buscador-rutas" placeholder="Buscar ruta..." 
+                                   oninput="cfg_filtrarRutas(this.value)"
+                                   style="padding:5px 10px; border:1px solid #cbd5e1; border-radius:6px; font-size:11px; width:160px; color:#334155;">
+                        </div>
+                    </div>
+                </div>
+                
+                <table class="tabla-constructor">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left; padding-left: 8px;">Nombre Oficial de la Ruta</th>
+                            <th>Puntos</th>
+                            <th>Fecha Creación</th>
+                            <th>Cargar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaRutasGuardadas"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+(function () {
+    "use strict";
+
+    // ─── VARIABLES CENTRALES (aisladas dentro del IIFE para evitar redeclaraciones) ───
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwpD1pTE937XwSm_R3ZPjZbqu6QVfJu1WjVSVYrkUbS9l2gn3fi1VJaYF8QQDiNokiO/exec";
+
+    let zonasFiltradas = [];
+    let rutaActual = [];
+    let idRutaActiva = null;
+    let apiGlobal = null;
+    let rutasNombresExistentes = []; // Cache de nombres de rutas para validar duplicados
+
+    // ─── FLAGS DE CONTROL DE CICLO DE VIDA ───
+    let eventosInicializados = false;
+    let datosCargados = false;
+    let necesitaRecargaAlVolver = true;
+
+    // ─── LÓGICA ORIGINAL INTACTA ───
+
+    function formatTime(decimal) {
+        if (!decimal || isNaN(decimal) || decimal <= 0) return "00:00";
+        let h = Math.floor(decimal);
+        let m = Math.round((decimal - h) * 60);
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
+
+    async function getDatosCarreteraReal(lat1, lon1, lat2, lon2) {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return { km: 0, tiempoMinutos: 0 };
+        
+        try {
+            const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+            const respuesta = await fetch(url);
+            const data = await respuesta.json();
+            
+            if (data && data.routes && data.routes.length > 0) {
+                const ruta = data.routes[0];
+                const kilometros = ruta.distance / 1000;
+                const tiempoMinutos = ruta.duration / 60;
+                return { km: kilometros, tiempoMinutos: tiempoMinutos };
+            }
+            
+            return { km: 0, tiempoMinutos: 0 };
+        } catch (e) {
+            console.error("Error consultando el enrutador OSRM:", e);
+            return { km: 0, tiempoMinutos: 0 };
+        }
+    }
+
+    async function cargarRutas() {
+        const listaUI = document.getElementById("listaRutasGuardadas");
+        try {
+            const res = await fetch(WEB_APP_URL + "?v=" + new Date().getTime(), {
+                method: "GET",
+                cache: "no-store"
+            });
+            const data = await res.json();
+            // Ocultar overlay al recibir datos
+            var overlay = document.getElementById('cfg-overlay-carga');
+            if (overlay) overlay.style.display = 'none';
+            listaUI.innerHTML = "";
+            rutasNombresExistentes = data.map(r => r.nombre.trim().toUpperCase());
+            data.forEach(r => {
+                const row = listaUI.insertRow();
+                let ptsArray = JSON.parse(r.puntos);
+                row.innerHTML = `
+                    <td style="text-align:left; font-weight:bold;">${r.nombre}</td>
+                    <td>${ptsArray.length}</td>
+                    <td>${r.fecha || '-'}</td>
+                    <td><button onclick='cargarParaEditar(${r.puntos}, "${r.nombre}", "${r.id}")' style="cursor:pointer; border:none; background:none; font-size:18px;">✏️</button></td>
+                `;
+            });
+        } catch(e) {
+            var overlay = document.getElementById('cfg-overlay-carga');
+            if (overlay) overlay.style.display = 'none';
+            listaUI.innerHTML = "<tr><td colspan='4'>Sincronizando con DB_CONFIGURACION...</td></tr>";
+        }
+    }
+
+    function cargarZonasGeotab(api) {
+        if (!api) return;
+        api.call("Get", { typeName: "Zone", search: { zoneTypeIds: ["b442"] } }, (result) => {
+            zonasFiltradas = result.filter(z => z.zoneTypes && z.zoneTypes.some(t => t.id === "b442")).sort((a, b) => a.name.localeCompare(b.name));
+            document.getElementById("lblZonas").innerText = `Escribe zona (${zonasFiltradas.length}):`;
+            const datalist = document.getElementById("listaZonas");
+            datalist.innerHTML = "";
+            zonasFiltradas.forEach(z => {
+                let opt = document.createElement("option"); opt.value = z.name; datalist.appendChild(opt);
+            });
+        }, (e) => { console.error("Error cargando zonas:", e); });
+    }
+
+    const resetearFormulario = () => {
+        document.getElementById("cfg-contenedorManual").classList.remove("editando");
+        document.getElementById("nombreRuta").value = "";
+        document.getElementById("buscadorZonas").value = "";
+        rutaActual = [];
+        idRutaActiva = null;
+        updateUI();
+    };
+
+    function updateUI() {
+        const cuerpo = document.getElementById("cuerpoRuta");
+        cuerpo.innerHTML = "";
+        rutaActual.forEach((item, i) => {
+            const row = cuerpo.insertRow();
+            const esPrimero = (i === 0);
+            row.innerHTML = `
+                <td>${i + 1}</td>
+                <td style="text-align: left; font-weight: bold;">${item.name}</td>
+                <td>${esPrimero ? '-' : '<input type="number" step="0.01" class="input-tiempo" style="width:80px; text-align:right;" value="' + item.km + '" onchange="const num = parseFloat(this.value) || 0; rutaActual[' + i + '].km = num.toFixed(2);">'}</td>
+                <td>${esPrimero ? '-' : '<input type="text" class="input-tiempo" value="' + item.tiempo + '">'}</td>
+                <td><input type="text" class="input-tiempo" value="${item.pernocte}"></td>
+                <td><button onclick="borrar(${i})" style="color:red; background:none; border:none; cursor:pointer; font-size:18px;">🗑️</button></td>
+            `;
+        });
+    }
+
+    // ─── INICIALIZAR EVENTOS UNA SOLA VEZ ───
+    function inicializarEventos() {
+        if (eventosInicializados) return;
+        eventosInicializados = true;
+
+        document.getElementById("cfg-btnCancelar").onclick = resetearFormulario;
+
+        document.getElementById("btnAgregar").onclick = async function () {
+            const inputNombre = document.getElementById("nombreRuta");
+            const inputBusqueda = document.getElementById("buscadorZonas");
+            if (!inputNombre.value.trim()) { alert("⚠️ Pon un nombre a la ruta"); return; }
+            const zonaSel = zonasFiltradas.find(z => z.name === inputBusqueda.value);
+            if (!zonaSel) return;
+            let lat = 0, lon = 0;
+            if (zonaSel.center) { lat = zonaSel.center.y; lon = zonaSel.center.x; }
+            else if (zonaSel.y) { lat = zonaSel.y; lon = zonaSel.x; }
+            else if (zonaSel.points && zonaSel.points[0]) { lat = zonaSel.points[0].y; lon = zonaSel.points[0].x; }
+
+            const previo = rutaActual[rutaActual.length - 1];
+
+            let kmFinal = 0;
+            let tiempoFinalStr = "00:00";
+
+            if (previo && lat !== 0) {
+                const datosPista = await getDatosCarreteraReal(previo.lat, previo.lon, lat, lon);
+                kmFinal = datosPista.km;
+                tiempoFinalStr = formatTime(datosPista.tiempoMinutos / 60);
+            }
+
+            rutaActual.push({
+                name: zonaSel.name, lat: lat, lon: lon,
+                km: kmFinal.toFixed(2), tiempo: tiempoFinalStr, pernocte: "00:30"
+            });
+            inputBusqueda.value = "";
+            updateUI();
+        };
+
+        document.getElementById("btnGuardar").onclick = async function () {
+            const nombre = document.getElementById("nombreRuta").value.trim();
+            const filas = document.querySelectorAll("#cuerpoRuta tr");
+            if (!nombre || rutaActual.length === 0) return alert("Faltan datos");
+            // Validar nombre duplicado solo al crear (no al editar)
+            if (!idRutaActiva && rutasNombresExistentes.includes(nombre.trim().toUpperCase())) {
+                return alert("⚠️ Ya existe una ruta con el nombre '" + nombre + "'. Use un nombre diferente o edite la ruta existente.");
+            }
+
+            const puntosFinales = rutaActual.map((p, i) => {
+                const inputs = filas[i].querySelectorAll("input");
+
+                if (i === 0) {
+                    return {
+                        ...p,
+                        tiempo: inputs[0] ? inputs[0].value : p.tiempo,
+                        pernocte: inputs[1] ? inputs[1].value : "00:30"
+                    };
+                } else {
+                    return {
+                        ...p,
+                        km: inputs[0] ? parseFloat(inputs[0].value).toFixed(2) : p.km,
+                        tiempo: inputs[1] ? inputs[1].value : p.tiempo,
+                        pernocte: inputs[2] ? inputs[2].value : "00:30"
+                    };
+                }
+            });
+
+            const btn = document.getElementById("btnGuardar");
+            btn.innerText = "⏳ Guardando...";
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({ action: "write", idRuta: idRutaActiva, nombre: nombre, puntos: JSON.stringify(puntosFinales) })
+            })
+            .then(() => {
+                alert("✅ Ruta Guardada en DB_CONFIGURACION");
+                resetearFormulario();
+                cargarRutas();
+                btn.innerText = "💾 Guardar Ruta";
+            })
+            .catch(e => {
+                console.error("Error guardando ruta:", e);
+                alert("Error al guardar. Revise consola o conexión.");
+                btn.innerText = "💾 Guardar Ruta";
+            });
+        };
+    }
+
+    // ─── EXPONER AL HTML LAS FUNCIONES QUE USAN onclick ───
+    window.borrar = (idx) => { rutaActual.splice(idx, 1); updateUI(); };
+    window.cargarParaEditar = (pts, nombre, id) => {
+        document.getElementById("cfg-contenedorManual").classList.add("editando");
+        document.getElementById("nombreRuta").value = nombre;
+        rutaActual = pts;
+        idRutaActiva = id;
+        updateUI();
+        window.scrollTo(0, 0);
+    };
+
+    // ─── CICLO DE VIDA DEL ADD-IN ───
+    geotab.addin.configurar = (api, state) => {
+        apiGlobal = api;
+
+        return {
+            initialize(api, state, callback) {
+                apiGlobal = api;
+
+                try {
+                    callback();
+                } catch (e) {
+                    console.error("Error ejecutando callback de initialize:", e);
+                }
+
+                setTimeout(() => {
+                    inicializarEventos();
+                    cargarZonasGeotab(api);
+                    cargarRutas();
+                    datosCargados = true;
+                }, 0);
+            },
+
+            focus(api, state) {
+                apiGlobal = api;
+                const debeForzar = necesitaRecargaAlVolver || !datosCargados;
+                necesitaRecargaAlVolver = false;
+                if (debeForzar) {
+                    var overlay = document.getElementById('cfg-overlay-carga');
+                    if (overlay) overlay.style.display = 'flex';
+                    cargarZonasGeotab(api);
+                    cargarRutas();
+                }
+            },
+
+            blur(api, state) {
+                necesitaRecargaAlVolver = true;
+            }
+        };
+    };
+
+    // ─── BUSCADOR DE RUTAS GUARDADAS ───
+    window.cfg_filtrarRutas = function(texto) {
+        const filas = document.querySelectorAll("#listaRutasGuardadas tr");
+        const filtro = texto.trim().toUpperCase();
+        filas.forEach(function(fila) {
+            const nombreCelda = fila.cells[0] ? fila.cells[0].innerText.toUpperCase() : "";
+            fila.style.display = (filtro === "" || nombreCelda.includes(filtro)) ? "" : "none";
+        });
+    };
+
+})();
+</script>
+<div id="cfg-overlay-carga" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; width:100vw; height:100vh; background:rgba(0,36,68,0.55); z-index:99999; justify-content:center; align-items:center; flex-direction:column; gap:16px; box-sizing:border-box; padding-left:160px;">
+    <div style="width:52px; height:52px; border:5px solid rgba(255,255,255,0.2); border-top-color:#38bdf8; border-radius:50%; animation:cfg-spin 0.8s linear infinite;"></div>
+    <span style="color:#ffffff; font-family:Arial,sans-serif; font-size:13px; font-weight:700; letter-spacing:1px;">CARGANDO...</span>
+</div>
+<style>
+@keyframes cfg-spin { to { transform: rotate(360deg); } }
+</style>
+</body>
+</html>
