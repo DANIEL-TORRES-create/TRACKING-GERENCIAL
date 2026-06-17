@@ -1,0 +1,202 @@
+body { 
+    font-family: 'Lexend', 'Segoe UI', Tahoma, sans-serif !important; 
+    padding: 20px !important; 
+    background-color: #f8fafc !important; 
+    color: #334155;
+    margin: 0;
+}
+
+.card-container { 
+    background: #ffffff !important; 
+    padding: 25px !important; 
+    border-radius: 16px !important; 
+    box-shadow: 0 10px 25px -5px rgba(0, 75, 147, 0.08) !important; 
+    max-width: 98% !important; /* Maximiza espacio para la pantalla dividida */
+    margin: auto !important; 
+    border: 1px solid #e2e8f0;
+}
+
+.titulo-seccion { 
+    color: #004b93 !important; 
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    border-bottom: 3px solid #004b93 !important; 
+    padding-bottom: 12px !important; 
+    margin-top: 0 !important; 
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+}
+
+/* =========================================
+   ⚡ CONTENEDOR SIMÉTRICO 50/50 (SPLIT-SCREEN)
+   ========================================= */
+.bunker-split-container {
+    display: flex !important;
+    gap: 20px !important;
+    width: 100% !important;
+    align-items: flex-start !important;
+    box-sizing: border-box;
+    margin-top: 20px;
+}
+
+/* Ventana Izquierda: Zona Operativa / Constructor */
+.columna-izquierda-pro {
+    flex: 1 !important; /* 50% Exacto */
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Ventana Derecha: Módulo de Listas / Historial */
+.columna-derecha-pro {
+    flex: 1 !important; /* 50% Exacto */
+    width: 50%;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1.5px solid #94a3b8; /* Borde gris slate intermedio para romper el blanco */
+    box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(0, 75, 147, 0.03);
+    position: sticky;
+    top: 15px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+/* 🎛️ BÚNKER DE HERRAMIENTAS INTEGRADO */
+.barra-herramientas, .modo-masivo { 
+    background: linear-gradient(145deg, #004b93, #003366) !important; 
+    padding: 16px !important; 
+    border-radius: 12px !important; 
+    margin-bottom: 0px !important; 
+    display: flex !important;
+    gap: 12px !important;
+    align-items: flex-end !important; 
+    box-shadow: 0 4px 15px rgba(0, 75, 147, 0.15) !important;
+    border: 1px solid #002244 !important;
+}
+
+.modo-masivo {
+    flex-direction: column !important;
+    align-items: stretch !important;
+}
+
+.barra-herramientas label, .modo-masivo label {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    letter-spacing: 0.5px;
+}
+
+.barra-herramientas input, .barra-herramientas select,
+.modo-masivo input, .modo-masivo select {
+    font-family: 'Lexend', sans-serif;
+    font-size: 11px !important;
+    font-weight: 600;
+    padding: 8px 10px !important;
+    border-radius: 6px !important;
+    border: 1px solid #002244 !important;
+    background-color: #002344 !important;
+    color: #ffffff !important;
+    box-sizing: border-box;
+}
+
+.barra-herramientas input:focus, .barra-herramientas select:focus,
+.modo-masivo input:focus, .modo-masivo select:focus {
+    outline: none !important;
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.3) !important;
+}
+
+/* 📊 TABLAS COMPACTAS PARA SPLIT SCREEN */
+.tabla-constructor { 
+    width: 100% !important; 
+    border-collapse: collapse !important; 
+    margin-top: 15px !important; 
+    background: #ffffff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.tabla-constructor th { 
+    background: #f1f5f9 !important; 
+    color: #475569 !important; 
+    padding: 10px 6px !important; 
+    text-align: center !important; 
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase;
+    border-bottom: 2px solid #cbd5e1 !important;
+    white-space: nowrap;
+}
+
+.tabla-constructor td { 
+    padding: 10px 6px !important; 
+    border-bottom: 1px solid #f1f5f9 !important; 
+    color: #334155;
+    font-size: 12px;
+    text-align: center !important; 
+    vertical-align: middle !important; 
+}
+
+.tabla-constructor tbody tr:hover td {
+    background-color: #f8fafc !important;
+}
+
+.input-tiempo { 
+    width: 70px !important; 
+    border: 1px solid #cbd5e1 !important; 
+    text-align: center !important; 
+    font-weight: 700 !important; 
+    color: #004b93 !important; 
+    padding: 4px !important; 
+    border-radius: 6px !important; 
+    background: #f8fafc !important;
+    font-size: 11px;
+}
+
+/* 🎛️ BOTONES PRO */
+.btn-lupa, .btn-descarga, .btn-guardar, .btn-cancelar {
+    font-family: 'Lexend', sans-serif;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 8px 16px !important;
+    border-radius: 6px !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease-in-out !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-transform: uppercase;
+}
+
+.btn-lupa { background: #38bdf8 !important; color: #002244 !important; }
+.btn-lupa:hover { background: #0ea5e9 !important; }
+
+.btn-descarga { background: #1e8e3e !important; color: white !important; }
+.btn-descarga:hover { background: #146c2e !important; }
+
+.btn-guardar { background: #004b93 !important; color: white !important; padding: 10px 24px !important; }
+.btn-guardar:hover { background: #003366 !important; }
+
+.btn-cancelar { background: #64748b !important; color: white !important; padding: 10px 24px !important; }
+.btn-cancelar:hover { background: #475569 !important; }
+
+.editando { 
+    background: linear-gradient(145deg, #004b93, #003366) !important; /* Fuerza a mantener el azul original adentro */
+    border: 2.5px solid #ef4444 !important; /* Enmarca solo el contorno en rojo */
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5) !important; /* Destello de advertencia */
+}
+.error-log { 
+    background: #fef2f2; color: #991b1b; padding: 10px; border-radius: 6px; 
+    margin-top: 10px; display: none; font-size: 11px; border: 1px solid #fee2e2; font-weight: 600;
+}
+
+input:disabled, select:disabled { 
+    background-color: rgba(0,0,0,0.15) !important; cursor: not-allowed !important; 
+    color: #94a3b8 !important; border-color: rgba(255,255,255,0.05) !important;
+}
+
+.seccion-lista { margin-top: 0px !important; border-top: none !important; padding-top: 0px !important; }
